@@ -1,97 +1,212 @@
 version: '3.4'
-
 services:
-
-  # SIP server
-  routr:
-    image: fonoster/routr:1.0.0-edge-20210314
-    depends_on: [redis]
-    environment: 
-      EXTERN_ADDR: ${DOCKER_HOST_ADDRESS}
-      DATA_SOURCE_PROVIDER: ${ROUTR_DATA_SOURCE_PROVIDER}
-      DATA_SOURCE_PARAMETERS: ${ROUTR_DATA_SOURCE_PARAMETERS}
-      EX_RTP_ENGINE_ENABLED: 'true'
-      EX_RTP_ENGINE_HOST: ${ROUTR_RTP_ENGINE_HOST}
-      EX_RTP_ENGINE_PORT: ${ROUTR_RTP_ENGINE_PORT}
-      RECORD_ROUTE: 'true'
-      REGISTRAR_INTF: Internal
+  web:
+    image: 'jitsi/web:stable-4857'
+    restart: '${RESTART_POLICY}'
     ports:
-      - ${ROUTR_SIP_PORTS}
-      - ${ROUTR_API_PORT}:${ROUTR_API_PORT}
-    volumes:  
-      - ${CONFIG}/config/routr/log4j2.yml:/opt/routr/config/log4j2.yml
-      - ${CONFIG}/config/routr/config.yml:/opt/routr/config/config.yml
-      - ${CONFIG}/etc/domains-cert.jks:/opt/routr/etc/certs/domains-cert.jks
-    networks:
-      rars-j:
-        aliases:
-          - routr.rars-j
-
-  # VoIP network bootstrap
-  routr-bootstrap:
-    image: fonoster/routr-ctl
-    entrypoint: |
-      sh -c '
-        /wait-for-it.sh -t 0 ${ROUTR_HOST}:${ROUTR_API_PORT}
-        rctl login https://${ROUTR_HOST}:${ROUTR_API_PORT}/api/v1beta1 \
-          -u ${ROUTR_API_USERNAME} -p ${ROUTR_API_SECRET}
-        rctl create -f /etc/bootstrap.yml
-      '
+      - '${HTTP_PORT}:80'
+      - '${HTTPS_PORT}:443'
     volumes:
-      - ${CONFIG}/config/routr/bootstrap.yml:/etc/bootstrap.yml:ro
-      - ${CONFIG}/etc/wait-for-it.sh:/wait-for-it.sh
-    networks:
-      rars-j:
-
-  # Support for basic media server capabilities such as IVR, Recording, etc.
-  mediaserver:
-    image: fonoster/fonos-mediaserver:latest
-    restart: always
+      - '${CONFIG}/web:/config:Z'
+      - '${CONFIG}/web/letsencrypt:/etc/letsencrypt:Z'
+      - '${CONFIG}/transcripts:/usr/share/jitsi-meet/transcripts:Z'
+      - '${CONFIG}/config/jitsi/interface_config.js:/config/interface_config.js'
+      - >-
+        ${CONFIG}/config/jitsi/app.bundle.min.js:/usr/share/jitsi-meet/libs/app.bundle.min.js
+      - '${CONFIG}/config/jitsi/all.css:/usr/share/jitsi-meet/css/all.css'
+      - >-
+        ${CONFIG}/etc/ac-logo-white.png:/usr/share/jitsi-meet/images/watermark.png
     environment:
-      EXTERN_ADDR: ${DOCKER_HOST_ADDRESS}
-      AGI_URL: ${ASTERISK_AGI_URL}
-      SIPPROXY_HOST: ${ASTERISK_SIPPROXY_HOST}
-      SIPPROXY_USERNAME: ${ASTERISK_SIPPROXY_USERNAME}
-      SIPPROXY_SECRET: ${ASTERISK_SIPPROXY_SECRET}
-    ports: 
-      - ${ASTERISK_SIP_PORT}:${ASTERISK_SIP_PORT}
+      - ENABLE_AUTH
+      - ENABLE_GUESTS
+      - ENABLE_LETSENCRYPT
+      - ENABLE_HTTP_REDIRECT
+      - ENABLE_TRANSCRIPTIONS
+      - DISABLE_HTTPS
+      - JICOFO_AUTH_USER
+      - LETSENCRYPT_DOMAIN
+      - LETSENCRYPT_EMAIL
+      - PUBLIC_URL
+      - XMPP_DOMAIN
+      - XMPP_AUTH_DOMAIN
+      - XMPP_BOSH_URL_BASE
+      - XMPP_GUEST_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_RECORDER_DOMAIN
+      - ETHERPAD_URL_BASE
+      - ETHERPAD_PUBLIC_URL
+      - TZ
+      - JIBRI_BREWERY_MUC
+      - JIBRI_PENDING_TIMEOUT
+      - JIBRI_XMPP_USER
+      - JIBRI_XMPP_PASSWORD
+      - JIBRI_RECORDER_USER
+      - JIBRI_RECORDER_PASSWORD
+      - ENABLE_RECORDING
+    networks:
+      meet:
+        aliases:
+          - '${XMPP_DOMAIN}'
+  jigasi:
+    image: 'jitsi/jigasi:stable-4857'
+    restart: '${RESTART_POLICY}'
+    ports:
+      - >-
+        ${JIGASI_PORT_MIN}-${JIGASI_PORT_MAX}:${JIGASI_PORT_MIN}-${JIGASI_PORT_MAX}/udp
     volumes:
-      - ${CONFIG}/config/asterisk/extensions.conf:/etc/asterisk/extensions.conf
-      - ${CONFIG}/config/asterisk/rtp.conf:/etc/asterisk/rtp.conf
-    networks:
-      rars-j:
-
-  # DB support for Routr's operations
-  redis:
-    image: redis:6.0.3-alpine
-    command: ['redis-server', '--appendonly', 'yes']
-    hostname: redis
-    expose: 
-      - ${REDIS_PORT}
-    networks:
-      rars-j:
-        aliases:
-          - redis.rars-j
-
-  # Media relay engine
-  rtpengine:
-    image: psanders/rtpengine:latest
-    restart: always
-    ports: 
-      - ${RTPE_HTTP_PORT}:${RTPE_HTTP_PORT} 
-      - ${RTPE_NG_PORT}:${RTPE_NG_PORT}/udp 
-      - ${RTPE_PORT_MIN}-${RTPE_PORT_MAX}:${RTPE_PORT_MIN}-${RTPE_PORT_MAX}/udp
+      - '${CONFIG}/jigasi:/config:Z'
+      - '${CONFIG}/transcripts:/tmp/transcripts:Z'
     environment:
-      BIND_HTTP_PORT: ${RTPE_HTTP_PORT}
-      PUBLIC_IP: ${DOCKER_HOST_ADDRESS}
-      PORT_MIN: ${RTPE_PORT_MIN}
-      PORT_MAX: ${RTPE_PORT_MAX}
-      LOG_LEVEL: '6'
+      - ENABLE_AUTH
+      - XMPP_AUTH_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_SERVER
+      - XMPP_DOMAIN
+      - PUBLIC_URL
+      - JIGASI_SIP_URI
+      - JIGASI_SIP_PASSWORD
+      - JIGASI_SIP_SERVER
+      - JIGASI_SIP_PORT
+      - JIGASI_SIP_TRANSPORT
+      - JIGASI_XMPP_USER
+      - JIGASI_XMPP_PASSWORD
+      - JIGASI_BREWERY_MUC
+      - JIGASI_PORT_MIN
+      - JIGASI_PORT_MAX
+      - JIGASI_HEALTH_CHECK_SIP_URI
+      - JIGASI_HEALTH_CHECK_INTERVAL
+      - JIGASI_SIP_KEEP_ALIVE_METHOD
+      - JIGASI_ENABLE_SDES_SRTP
+      - ENABLE_TRANSCRIPTIONS
+      - JIGASI_TRANSCRIBER_ADVERTISE_URL
+      - JIGASI_TRANSCRIBER_RECORD_AUDIO
+      - JIGASI_TRANSCRIBER_SEND_TXT
+      - GC_PROJECT_ID
+      - GC_PRIVATE_KEY_ID
+      - GC_PRIVATE_KEY
+      - GC_CLIENT_EMAIL
+      - GC_CLIENT_ID
+      - GC_CLIENT_CERT_URL
+      - TZ
+    depends_on:
+      - prosody
     networks:
-      rars-j:
+      meet: null
+  prosody:
+    image: 'jitsi/prosody:stable-4857'
+    restart: '${RESTART_POLICY}'
+    expose:
+      - '5222'
+      - '5347'
+      - '5280'
+    volumes:
+      - '${CONFIG}/prosody/config:/config:Z'
+      - '${CONFIG}/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z'
+    environment:
+      - AUTH_TYPE
+      - ENABLE_AUTH
+      - ENABLE_GUESTS
+      - ENABLE_LOBBY
+      - GLOBAL_MODULES
+      - GLOBAL_CONFIG
+      - LDAP_URL
+      - LDAP_BASE
+      - LDAP_BINDDN
+      - LDAP_BINDPW
+      - LDAP_FILTER
+      - LDAP_AUTH_METHOD
+      - LDAP_VERSION
+      - LDAP_USE_TLS
+      - LDAP_TLS_CIPHERS
+      - LDAP_TLS_CHECK_PEER
+      - LDAP_TLS_CACERT_FILE
+      - LDAP_TLS_CACERT_DIR
+      - LDAP_START_TLS
+      - XMPP_DOMAIN
+      - XMPP_AUTH_DOMAIN
+      - XMPP_GUEST_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_MODULES
+      - XMPP_MUC_MODULES
+      - XMPP_INTERNAL_MUC_MODULES
+      - XMPP_RECORDER_DOMAIN
+      - JICOFO_COMPONENT_SECRET
+      - JICOFO_AUTH_USER
+      - JICOFO_AUTH_PASSWORD
+      - JVB_AUTH_USER
+      - JVB_AUTH_PASSWORD
+      - JIGASI_XMPP_USER
+      - JIGASI_XMPP_PASSWORD
+      - JIBRI_XMPP_USER
+      - JIBRI_XMPP_PASSWORD
+      - JIBRI_RECORDER_USER
+      - JIBRI_RECORDER_PASSWORD
+      - JWT_APP_ID
+      - JWT_APP_SECRET
+      - JWT_ACCEPTED_ISSUERS
+      - JWT_ACCEPTED_AUDIENCES
+      - JWT_ASAP_KEYSERVER
+      - JWT_ALLOW_EMPTY
+      - JWT_AUTH_TYPE
+      - JWT_TOKEN_AUTH_MODULE
+      - LOG_LEVEL
+      - TZ
+    networks:
+      meet:
         aliases:
-          - rtpengine.rars-j
-
-# Custom network so all services can communicate using a FQDN
+          - '${XMPP_SERVER}'
+  jicofo:
+    image: 'jitsi/jicofo:stable-4857'
+    restart: '${RESTART_POLICY}'
+    volumes:
+      - '${CONFIG}/jicofo:/config:Z'
+    environment:
+      - AUTH_TYPE
+      - ENABLE_AUTH
+      - XMPP_DOMAIN
+      - XMPP_AUTH_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_SERVER
+      - JICOFO_COMPONENT_SECRET
+      - JICOFO_AUTH_USER
+      - JICOFO_AUTH_PASSWORD
+      - JICOFO_RESERVATION_REST_BASE_URL
+      - JVB_BREWERY_MUC
+      - JIGASI_BREWERY_MUC
+      - JIGASI_SIP_URI
+      - JIBRI_BREWERY_MUC
+      - JIBRI_PENDING_TIMEOUT
+      - TZ
+    depends_on:
+      - prosody
+    networks:
+      meet:
+  jvb:
+    image: 'jitsi/jvb:stable-4857'
+    restart: '${RESTART_POLICY}'
+    ports:
+      - '${JVB_PORT}:${JVB_PORT}/udp'
+      - '${JVB_TCP_PORT}:${JVB_TCP_PORT}'
+    volumes:
+      - '${CONFIG}/jvb:/config:Z'
+    environment:
+      - DOCKER_HOST_ADDRESS
+      - XMPP_AUTH_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_SERVER
+      - JVB_AUTH_USER
+      - JVB_AUTH_PASSWORD
+      - JVB_BREWERY_MUC
+      - JVB_PORT
+      - JVB_TCP_HARVESTER_DISABLED
+      - JVB_TCP_PORT
+      - JVB_STUN_SERVERS
+      - JVB_ENABLE_APIS
+      - TZ
+    depends_on:
+      - prosody
+    networks:
+      meet:
 networks:
-  rars-j:
+  meet:

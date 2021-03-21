@@ -1,9 +1,6 @@
-# RARS-J
+# Meet
 
-This stack features the basic components to create a VoIP infrastructure to deliver voice, video, messanging and file sharing.
-It uses [Routr I/O](https://github.com/fonoster/routr) as the SIP Server, RTPEngine for media relay and SIP.js as client. It also uses Jitsi Meet for video conferencing.
-
-<img src="https://raw.githubusercontent.com/psanders/rars-j/master/diagram.png" height="350" />
+This stack features the basic video solution using Jitsi Meet.
 
 ## Requirements
 
@@ -15,7 +12,7 @@ It uses [Routr I/O](https://github.com/fonoster/routr) as the SIP Server, RTPEng
 ➊ Download the project
 
 ```bash
-git clone https://github.com/psanders/rars-j
+git clone https://github.com/fonoster/meet
 ```
 
 ➋  Create required CONFIG directories
@@ -37,9 +34,6 @@ echo config/jitsi,etc,web/letsencrypt,transcripts,prosody/config,prosody/prosody
 Run the stack with the following command:
 
 ```bash
-docker-compose -f docker-compose.yml -f jitsi.yml up
+docker-compose -f docker-compose.yml up
 ```
 
-> Only use the jitsi.yml if you need jitsi meet in your mini voip infrastructure.
-
-Once all the services are up, go to [Jitsi Meet](http://localhost:8000/FamousFirulette) to start the conference.

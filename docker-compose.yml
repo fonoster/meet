@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.7'
 services:
   web:
     image: 'jitsi/web:stable-4857'
@@ -7,9 +7,8 @@ services:
       - '${HTTP_PORT}:80'
       - '${HTTPS_PORT}:443'
     volumes:
-      - '${CONFIG}/web:/config:Z'
-      - '${CONFIG}/web/letsencrypt:/etc/letsencrypt:Z'
-      - '${CONFIG}/transcripts:/usr/share/jitsi-meet/transcripts:Z'
+      - '${CONFIG}/web/keys/cert.crt:/config/keys/cert.crt'
+      - '${CONFIG}/web/keys/cert.key:/config/keys/cert.key'
       - '${CONFIG}/config/jitsi/interface_config.js:/config/interface_config.js'
       - >-
         ${CONFIG}/config/jitsi/app.bundle.min.js:/usr/share/jitsi-meet/libs/app.bundle.min.js
@@ -47,51 +46,7 @@ services:
       meet:
         aliases:
           - '${XMPP_DOMAIN}'
-  jigasi:
-    image: 'jitsi/jigasi:stable-4857'
-    restart: '${RESTART_POLICY}'
-    ports:
-      - >-
-        ${JIGASI_PORT_MIN}-${JIGASI_PORT_MAX}:${JIGASI_PORT_MIN}-${JIGASI_PORT_MAX}/udp
-    volumes:
-      - '${CONFIG}/jigasi:/config:Z'
-      - '${CONFIG}/transcripts:/tmp/transcripts:Z'
-    environment:
-      - ENABLE_AUTH
-      - XMPP_AUTH_DOMAIN
-      - XMPP_INTERNAL_MUC_DOMAIN
-      - XMPP_SERVER
-      - XMPP_DOMAIN
-      - PUBLIC_URL
-      - JIGASI_SIP_URI
-      - JIGASI_SIP_PASSWORD
-      - JIGASI_SIP_SERVER
-      - JIGASI_SIP_PORT
-      - JIGASI_SIP_TRANSPORT
-      - JIGASI_XMPP_USER
-      - JIGASI_XMPP_PASSWORD
-      - JIGASI_BREWERY_MUC
-      - JIGASI_PORT_MIN
-      - JIGASI_PORT_MAX
-      - JIGASI_HEALTH_CHECK_SIP_URI
-      - JIGASI_HEALTH_CHECK_INTERVAL
-      - JIGASI_SIP_KEEP_ALIVE_METHOD
-      - JIGASI_ENABLE_SDES_SRTP
-      - ENABLE_TRANSCRIPTIONS
-      - JIGASI_TRANSCRIBER_ADVERTISE_URL
-      - JIGASI_TRANSCRIBER_RECORD_AUDIO
-      - JIGASI_TRANSCRIBER_SEND_TXT
-      - GC_PROJECT_ID
-      - GC_PRIVATE_KEY_ID
-      - GC_PRIVATE_KEY
-      - GC_CLIENT_EMAIL
-      - GC_CLIENT_ID
-      - GC_CLIENT_CERT_URL
-      - TZ
-    depends_on:
-      - prosody
-    networks:
-      meet: null
+
   prosody:
     image: 'jitsi/prosody:stable-4857'
     restart: '${RESTART_POLICY}'

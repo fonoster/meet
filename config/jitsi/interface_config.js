@@ -47,7 +47,7 @@ var interfaceConfig = {
     DEFAULT_BACKGROUND: '#474747',
     DEFAULT_LOCAL_DISPLAY_NAME: 'me',
     DEFAULT_LOGO_URL: 'images/watermark.png',
-    DEFAULT_REMOTE_DISPLAY_NAME: 'Care Meet',
+    DEFAULT_REMOTE_DISPLAY_NAME: 'Meet',
 
     DISABLE_DOMINANT_SPEAKER_INDICATOR: true,
 

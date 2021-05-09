@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-kompose-resolved.yaml
+    kompose.version: 1.22.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: prosody
+  name: prosody
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: prosody
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-kompose-resolved.yaml
+        kompose.version: 1.22.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: prosody
+    spec:
+      containers:
+        - env:
+            - name: JIBRI_RECORDER_PASSWORD
+              value: 59aa4a70f3bf33a890e7430fb5fb2d29
+            - name: JIBRI_RECORDER_USER
+              value: recorder
+            - name: JIBRI_XMPP_PASSWORD
+              value: 390b17d474a1ae02291dbe7ca44b2e74
+            - name: JIBRI_XMPP_USER
+              value: jibri
+            - name: JICOFO_AUTH_PASSWORD
+              value: 1769218a7b570038f902dfb0ffba40fe
+            - name: JICOFO_AUTH_USER
+              value: focus
+            - name: JICOFO_COMPONENT_SECRET
+              value: 5520fef605cf27cfc08451b0bae4b1fe
+            - name: JIGASI_XMPP_PASSWORD
+              value: 2a001146808ff5cc8b989e643751fcda
+            - name: JIGASI_XMPP_USER
+              value: jigasi
+            - name: JVB_AUTH_PASSWORD
+              value: fa7ff6b3eda10e2bf0b98c4d80598744
+            - name: JVB_AUTH_USER
+              value: jvb
+            - name: TZ
+              value: UTC
+            - name: XMPP_AUTH_DOMAIN
+              value: auth.rars-j
+            - name: XMPP_DOMAIN
+              value: rars-j
+            - name: XMPP_GUEST_DOMAIN
+              value: guest.rars-j
+            - name: XMPP_INTERNAL_MUC_DOMAIN
+              value: internal-muc.rars-j
+            - name: XMPP_INTERNAL_MUC_MODULES
+            - name: XMPP_MODULES
+            - name: XMPP_MUC_DOMAIN
+              value: muc.rars-j
+            - name: XMPP_MUC_MODULES
+            - name: XMPP_RECORDER_DOMAIN
+              value: recorder.rars-j
+            - name: PUBLIC_URL
+              value: http://jitsi.example.com
+          image: jitsi/prosody:stable-4857
+          name: prosody
+          ports:
+            - containerPort: 5222
+            - containerPort: 5347
+            - containerPort: 5280
+          resources: {}
+      restartPolicy: Always
+status: {}
